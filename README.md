@@ -4,6 +4,12 @@ Compares two live Postgres schemas and generates the SQL to reconcile
 them — dev vs. prod, or two branches' migration state. Python's `migra`
 is the closest existing tool (or paid SaaS); no Rust equivalent.
 
+## Installation
+
+```sh
+cargo install --path .
+```
+
 ## Usage
 
 ```bash
