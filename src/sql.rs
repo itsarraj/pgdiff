@@ -40,6 +40,18 @@ pub fn render(change: &Change) -> String {
             };
             format!("ALTER TABLE \"{table}\" ALTER COLUMN \"{column}\" {action};")
         }
+        Change::IndexAdded { index, .. } => {
+            format!("{};", index.index_def)
+        }
+        Change::IndexRemoved { index_name, .. } => {
+            format!("DROP INDEX \"{index_name}\";")
+        }
+        Change::ConstraintAdded { table, constraint } => {
+            format!("ALTER TABLE \"{table}\" ADD CONSTRAINT \"{}\" {};", constraint.name, constraint.constraint_def)
+        }
+        Change::ConstraintRemoved { table, constraint_name } => {
+            format!("ALTER TABLE \"{table}\" DROP CONSTRAINT \"{constraint_name}\";")
+        }
     }
 }
 
@@ -152,5 +164,28 @@ mod tests {
             now_nullable: true,
         });
         assert_eq!(drop, "ALTER TABLE \"t\" ALTER COLUMN \"c\" DROP NOT NULL;");
+    }
+
+    #[test]
+    fn renders_index_and_constraint_changes() {
+        let idx = crate::model::IndexInfo { name: "idx_1".to_string(), index_def: "CREATE INDEX idx_1 ON public.t USING btree (id)".to_string() };
+        let con = crate::model::ConstraintInfo { name: "con_1".to_string(), constraint_def: "PRIMARY KEY (id)".to_string() };
+
+        assert_eq!(
+            render(&Change::IndexAdded { table: "t".to_string(), index: idx }),
+            "CREATE INDEX idx_1 ON public.t USING btree (id);"
+        );
+        assert_eq!(
+            render(&Change::IndexRemoved { table: "t".to_string(), index_name: "idx_1".to_string() }),
+            "DROP INDEX \"idx_1\";"
+        );
+        assert_eq!(
+            render(&Change::ConstraintAdded { table: "t".to_string(), constraint: con }),
+            "ALTER TABLE \"t\" ADD CONSTRAINT \"con_1\" PRIMARY KEY (id);"
+        );
+        assert_eq!(
+            render(&Change::ConstraintRemoved { table: "t".to_string(), constraint_name: "con_1".to_string() }),
+            "ALTER TABLE \"t\" DROP CONSTRAINT \"con_1\";"
+        );
     }
 }
